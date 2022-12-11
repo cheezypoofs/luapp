@@ -1,0 +1,6 @@
+*.cmake
+luapp_test*
+*.a
+*.lib
+.vscode
+Makefile
