@@ -40,11 +40,13 @@ void State::DoString(const char *s) { ThrowIfError(luaL_dostring(m_state, s)); }
 
 State &State::OpenBase() {
   ThrowIfZero(luaopen_base(m_state));
+  lua_pop(m_state, 1);
   return *this;
 }
 
 State &State::OpenTable() {
   ThrowIfZero(luaopen_table(m_state));
+  lua_pop(m_state, 1);
   return *this;
 }
 
