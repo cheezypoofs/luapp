@@ -36,17 +36,15 @@ State::~State() {
   lua_close(m_state);
 }
 
-void State::DoString(const char *s) {
-  ThrowIfError(*this, luaL_dostring(m_state, s));
-}
+void State::DoString(const char *s) { ThrowIfError(luaL_dostring(m_state, s)); }
 
 State &State::OpenBase() {
-  ThrowIfError(*this, luaopen_base(m_state));
+  ThrowIfZero(luaopen_base(m_state));
   return *this;
 }
 
 State &State::OpenTable() {
-  ThrowIfError(*this, luaopen_table(m_state));
+  ThrowIfZero(luaopen_table(m_state));
   return *this;
 }
 

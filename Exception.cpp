@@ -7,7 +7,7 @@
 namespace lua {
 
 namespace {
-std::string MakeError(lua_State *state, const char *msg) {
+std::string MakeRuntimeError(lua_State *state, const char *msg) {
   std::string err;
 
   if (msg) {
@@ -22,10 +22,9 @@ std::string MakeError(lua_State *state, const char *msg) {
 }
 } // namespace
 
-Exception::Exception(State &state)
-    : std::runtime_error(MakeError(state, nullptr)) {}
+Exception::Exception(const std::string &what) : std::runtime_error(what) {}
 
-Exception::Exception(State &state, const char *reason)
-    : std::runtime_error(MakeError(state, reason)) {}
+RuntimeException::RuntimeException(State &state)
+    : Exception(MakeRuntimeError(state, nullptr)) {}
 
 } // namespace lua
