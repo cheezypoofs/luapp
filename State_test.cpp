@@ -2,10 +2,10 @@
 
 using namespace lua;
 
-class StateTest : public LuaTestBase, public ::testing::Test {};
+class StateTest : public LuaTestBase {};
 
 TEST_F(StateTest, TestRunWithBase) {
-  m_state.OpenBase().DoString(u8R"(
+  m_state->OpenBase().DoString(u8R"(
         print("hello")
     )");
 }

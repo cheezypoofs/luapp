@@ -3,28 +3,28 @@
 
 using namespace lua;
 
-class TypeTest : public LuaTestBase, public ::testing::Test {};
+class TypeTest : public LuaTestBase {};
+
+TEST_F(TypeTest, TestNil) {
+  NilType::Push(*m_state);
+  ASSERT_TRUE(NilType::Is(*m_state, -1));
+  ASSERT_EQ(TypeName(*m_state, -1), "nil");
+}
 
 TEST_F(TypeTest, TestInt) {
-  m_state.PushInteger(99);
-  auto i = m_state.MaybeGetInteger(-1);
-  ASSERT_TRUE(i);
-  ASSERT_EQ(*i, lua_Integer(99));
-  ASSERT_EQ(TypeName(m_state, -1), "number");
+  IntType::Push(*m_state, 99);
+  ASSERT_EQ(GetType<IntType>(*m_state, -1), lua_Integer(99));
+  ASSERT_EQ(TypeName(*m_state, -1), "number");
 }
 
 TEST_F(TypeTest, TestFloat) {
-  m_state.PushNumber(99.9);
-  auto d = m_state.MaybeGetNumber(-1);
-  ASSERT_TRUE(d);
-  ASSERT_NEAR(*d, lua_Number(99.9), 0.001);
-  ASSERT_EQ(TypeName(m_state, -1), "number");
+  NumberType::Push(*m_state, 99.9);
+  ASSERT_NEAR(GetType<NumberType>(*m_state, -1), lua_Number(99.9), 0.001);
+  ASSERT_EQ(TypeName(*m_state, -1), "number");
 }
 
 TEST_F(TypeTest, TestString) {
-  m_state.PushString("hello");
-  auto s = m_state.MaybeGetString(-1);
-  ASSERT_TRUE(s);
-  ASSERT_EQ(std::string(s), "hello");
-  ASSERT_EQ(TypeName(m_state, -1), "string");
+  StringType::Push(*m_state, "hello");
+  ASSERT_EQ(std::string(GetType<StringType>(*m_state, -1)), "hello");
+  ASSERT_EQ(TypeName(*m_state, -1), "string");
 }
