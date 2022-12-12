@@ -67,4 +67,14 @@ std::optional<const char *> StringType::MaybeGet(State &state, int index) {
   return lua_tostring(state, index);
 }
 
+///
+
+int TableType::TypeNum = LUA_TTABLE;
+
+void TableType::Push(State& state, size_t narr, size_t nrec) {
+  assert(narr >= 0);
+  assert(nrec >= 0);
+  lua_createtable(state, static_cast<int>(narr), static_cast<int>(nrec));
+}
+
 } // namespace lua

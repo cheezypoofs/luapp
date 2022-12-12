@@ -37,6 +37,11 @@ struct StringType final {
   static std::optional<Type> MaybeGet(State &, int index);
 };
 
+struct TableType final {
+  static int TypeNum;
+  static void Push(State &, size_t narr, size_t nrec);
+};
+
 template <typename T> typename T::Type GetType(State &state, int index) {
   auto v = T::MaybeGet(state, index);
   if (!v) {
