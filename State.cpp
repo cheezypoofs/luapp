@@ -36,16 +36,73 @@ State::~State() {
   lua_close(m_state);
 }
 
-void State::DoString(const char *s) { ThrowIfError(luaL_dostring(m_state, s)); }
+void State::DoString(const char *s) { 
+  if (luaL_dostring(m_state, s) != LUA_OK) {
+    throw RuntimeException(*this);
+  }
+}
+
+State &State::OpenAll() {
+  luaL_openlibs(m_state);
+  return *this;
+}
 
 State &State::OpenBase() {
-  ThrowIfZero(luaopen_base(m_state));
+  luaL_requiref(m_state, LUA_GNAME, luaopen_base, 1);
   lua_pop(m_state, 1);
   return *this;
 }
 
 State &State::OpenTable() {
-  ThrowIfZero(luaopen_table(m_state));
+  luaL_requiref(m_state, LUA_TABLIBNAME, luaopen_table, 1);
+  lua_pop(m_state, 1);
+  return *this;
+}
+
+State &State::OpenCoroutine() {
+  luaL_requiref(m_state, LUA_COLIBNAME, luaopen_coroutine, 1);
+  lua_pop(m_state, 1);
+  return *this;
+}
+
+State &State::OpenIO() {
+  luaL_requiref(m_state, LUA_IOLIBNAME, luaopen_io, 1);
+  lua_pop(m_state, 1);
+  return *this;
+}
+
+State &State::OpenPackage() {
+  luaL_requiref(m_state, LUA_LOADLIBNAME, luaopen_package, 1);
+  lua_pop(m_state, 1);
+  return *this;
+}
+
+State &State::OpenOS() {
+  luaL_requiref(m_state, LUA_OSLIBNAME, luaopen_os, 1);
+  lua_pop(m_state, 1);
+  return *this;
+}
+
+State &State::OpenString() {
+  luaL_requiref(m_state, LUA_STRLIBNAME, luaopen_string, 1);
+  lua_pop(m_state, 1);
+  return *this;
+}
+
+State &State::OpenMath() {
+  luaL_requiref(m_state, LUA_MATHLIBNAME, luaopen_math, 1);
+  lua_pop(m_state, 1);
+  return *this;
+}
+
+State &State::OpenUTF8() {
+  luaL_requiref(m_state, LUA_UTF8LIBNAME, luaopen_utf8, 1);
+  lua_pop(m_state, 1);
+  return *this;
+}
+
+State &State::OpenDebug() {
+  luaL_requiref(m_state, LUA_DBLIBNAME, luaopen_debug, 1);
   lua_pop(m_state, 1);
   return *this;
 }

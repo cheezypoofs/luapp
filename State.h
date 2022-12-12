@@ -19,9 +19,22 @@ public:
 
   void DoString(const char *);
 
-  // helpers around built-in capabilities
+  // Call `luaL_openlibs`. This is mutually exclusive with the
+  // Open* functions below.
+  State &OpenAll();
+
+  // Explicitly load in libraries rather than using `luaL_openlibs` to
+  // load them all.
   State &OpenBase();
   State &OpenTable();
+  State &OpenCoroutine();
+  State &OpenIO();
+  State &OpenPackage();
+  State &OpenOS();
+  State &OpenString();
+  State &OpenMath();
+  State &OpenUTF8();
+  State &OpenDebug();
 
 private:
   std::shared_ptr<Allocator> m_alloc;
