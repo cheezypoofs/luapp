@@ -27,6 +27,7 @@ add_library(
     State.cpp
     Type.h
     Type.cpp
+    UserData.h
 )
 
 add_executable(
@@ -35,6 +36,7 @@ add_executable(
     luapp_test.cpp
     State_test.cpp
     Type_test.cpp
+    UserData_test.cpp
 )
 
 target_link_libraries(

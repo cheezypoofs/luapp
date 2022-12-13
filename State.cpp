@@ -36,7 +36,11 @@ State::~State() {
   lua_close(m_state);
 }
 
-void State::DoString(const char *s) { ThrowIfError(luaL_dostring(m_state, s)); }
+void State::DoString(const char *s) { 
+  if (luaL_dostring(m_state, s) != LUA_OK) {
+    throw RuntimeException(*this);
+  }
+}
 
 State &State::OpenAll() {
   luaL_openlibs(m_state);
