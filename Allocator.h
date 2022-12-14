@@ -10,8 +10,11 @@ class Allocator {
  public:
   virtual ~Allocator() = default;
 
+  // Alloc allocates a non-zero number of bytes.
   virtual void* Alloc(size_t o) noexcept = 0;
+  // Recalloc reallocates an existing ptr from size `o` to size `n`.
   virtual void* Realloc(void*, size_t o, size_t n) noexcept = 0;
+  // Free will be called to release the non-null pointer with size `o`.
   virtual void Free(void*, size_t o) noexcept = 0;
 };
 

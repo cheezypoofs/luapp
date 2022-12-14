@@ -11,12 +11,14 @@ void* allocator(void* ud, void* ptr, size_t osize, size_t nsize) {
   assert(ud);
   auto allocator = static_cast<Allocator*>(ud);
 
-  if (ptr) {
-    if (nsize == 0) {
+  if (nsize == 0) {
+    if (ptr) {
       allocator->Free(ptr, osize);
-      return nullptr;
     }
+    return nullptr;
+  }
 
+  if (ptr) {
     return allocator->Realloc(ptr, osize, nsize);
   }
 
@@ -39,6 +41,16 @@ State::~State() {
 
 void State::DoString(const char* s) {
   if (luaL_dostring(m_state, s) != LUA_OK) {
+    throw RuntimeException(*this);
+  }
+}
+
+void State::DoStdin() {
+  return DoFile(nullptr);
+}
+
+void State::DoFile(const char* fname) {
+  if (luaL_dofile(m_state, fname) != LUA_OK) {
     throw RuntimeException(*this);
   }
 }

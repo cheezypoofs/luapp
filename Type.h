@@ -6,6 +6,8 @@
 #include <unordered_map>
 #include "luapp.h"
 
+// todo: I want to find a way to let someone override stl data
+// types with higher performing 3rd party ones.
 #ifndef LUAPP_SMALL_MAP
 #define LUAPP_SMALL_MAP std::unordered_map
 #endif

@@ -46,3 +46,16 @@ target_link_libraries(
     gtest
     lua
 )
+
+add_executable(
+    simple_lua
+
+    simple_lua.cpp
+)
+
+target_link_libraries(
+    simple_lua
+
+    luapp
+    lua
+)

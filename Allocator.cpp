@@ -6,9 +6,7 @@
 namespace lua {
 
 void* StdAllocator::Alloc(size_t n) noexcept {
-  if (n == 0) {
-    return nullptr;
-  }
+  assert(n);
   auto p = ::malloc(n);
   //    std::cout << "malloc(" << n << ") = " << p << std::endl;
   return p;
