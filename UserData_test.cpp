@@ -69,5 +69,10 @@ f.thing="thing"
 print(f.thing)
 local n = f.noop()
 print(n)
+
+-- should be able to kill `f` and `s` is still valid
+local s = f.speak
+f = nil
+print(s())
     )");
 }

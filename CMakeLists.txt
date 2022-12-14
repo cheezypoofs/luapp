@@ -28,6 +28,7 @@ add_library(
     Type.h
     Type.cpp
     UserData.h
+    UserData.cpp
 )
 
 add_executable(

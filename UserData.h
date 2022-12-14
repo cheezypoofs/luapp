@@ -119,17 +119,14 @@ struct Index {
     return *this;
   }
 
-  // Method* makes this Index a callable method bould to the instance.
-  // The callback will have all arguments in the call with the exception that
-  // you must ignored the value at index-1 as it will not be an instance of self
-  // (you don't need it, we already called you as an instance). All other
-  // arguments are as expected where 0 is not valid, 1 you ignore, and 2... are
-  // the arguments.
+  // Method* makes this Index a callable method bound to the instance.
+  // Your method can use 0 or more typed arguments, which will be pulled out of the
+  // lua call stack and converted for you.
   //
   // note: This assumes your method is a form like:
-  //  const char* DoSomething(lua_State*) noexcept { ... }
+  //  const char* DoSomething() noexcept { ... }
   //
-  // use NoneType as ReturnType for void
+  // use NoneType as ReturnType for Void.
 
   template <typename ReturnType, typename DataType>
   Index& Method0(typename ReturnType::Type (DataType::*f)() noexcept) {
@@ -217,39 +214,32 @@ struct Index {
   }
 };
 
+// UserData is a base class you can use for registering custom
+// data types in lua. This type is how you use the RegisterUserData*
+// functions to install the new type. At a minimum, you must implement:
+//
+//  static const char* Name : This will be used as the registration name.
+//
 class UserData {
  public:
-  virtual ~UserData() = default;
-
   typedef LUAPP_SMALL_MAP<std::string, Index> IndexMap;
 
-  int MetaNewIndex(lua_State* L) noexcept {
-    const char* key = luaL_checkstring(L, 2);
+  static const char* Name;  // explicitly not implemented in base class
 
-    auto i = FindKey(key);
-    if (i && i->setter) {
-      return i->setter(this, L);
-    }
+  virtual ~UserData() = default;
 
-    return 0;
-  }
+  // MetaIndex is the handler for the __index registration. It
+  // attempts to look for a getter or method in your IndexMap
+  // (by way of Indexes) and invoke it. You can override
+  // this to implement specialized lookups (example: a custom
+  // dictionary impl).
+  virtual int MetaIndex(lua_State* L) const noexcept;
 
-  int MetaIndex(lua_State* L) const noexcept {
-    const char* key = luaL_checkstring(L, 2);
-
-    auto i = FindKey(key);
-    if (!i) {
-      return 0;
-    }
-    if (i->getter) {
-      return i->getter(this, L);
-    }
-    if (i->fn) {
-      return i->fn(L);
-    }
-
-    return 0;
-  }
+  // MetaNewIndex is the handler for the __newindex registration. It
+  // attempts to look for a setter in your IndexMap
+  // (by way of Indexes) and invoke it. You can override
+  // this to implement specialized set.
+  virtual int MetaNewIndex(lua_State* L) noexcept;
 
  protected:
   // Indexes (sic: It sounds better than indices) is an optional override
@@ -257,20 +247,11 @@ class UserData {
   // __index and __newindex (MetaIndex and MetaNewIndex).
   // You should use a statically initialized instance and return its address
   // if your type is meant to expose properties and methods.
+  // This default impl returns `nullptr`, which indicates no indexes are available.
   virtual const IndexMap* Indexes() const noexcept { return nullptr; }
 
  private:
-  const Index* FindKey(const char* key) const noexcept {
-    auto indexes = Indexes();
-    if (!indexes) {
-      return nullptr;
-    }
-    auto it = indexes->find(key);
-    if (it == indexes->end()) {
-      return nullptr;
-    }
-    return &it->second;
-  }
+  const Index* FindKey(const char* key) const noexcept;
 };
 
 namespace {
