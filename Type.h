@@ -14,36 +14,44 @@ namespace lua {
 std::string TypeName(int luaTypeNum);
 std::string TypeName(lua_State*, int index);
 
+struct Void{};
+struct NoneType final {
+  typedef Void Type;
+  static int TypeNum;
+  static int Push(lua_State*, const Void& = Void());
+  static bool Is(lua_State*, int index);
+};
+
 struct NilType final {
   static int TypeNum;
-  static void Push(lua_State*);
+  static int Push(lua_State*);
   static bool Is(lua_State*, int index);
 };
 
 struct IntType final {
   typedef lua_Integer Type;
   static int TypeNum;
-  static void Push(lua_State*, Type);
+  static int Push(lua_State*, Type);
   static std::optional<Type> MaybeGet(lua_State*, int index);
 };
 
 struct NumberType final {
   typedef lua_Number Type;
   static int TypeNum;
-  static void Push(lua_State*, Type);
+  static int Push(lua_State*, Type);
   static std::optional<Type> MaybeGet(lua_State*, int index);
 };
 
 struct StringType final {
   typedef const char* Type;
   static int TypeNum;
-  static void Push(lua_State*, Type);
+  static int Push(lua_State*, Type);
   static std::optional<Type> MaybeGet(lua_State*, int index);
 };
 
 struct TableType final {
   static int TypeNum;
-  static void Push(lua_State*, size_t narr, size_t nrec);
+  static int Push(lua_State*, size_t narr, size_t nrec);
 };
 
 template <typename T>

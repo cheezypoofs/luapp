@@ -9,11 +9,88 @@
 
 namespace lua {
 
+namespace {
+
+template <typename A>
+struct ArgGuesser {
+  typedef struct CannotGuessType Type;
+};
+
+template <>
+struct ArgGuesser<const char*> {
+  typedef StringType Type;
+};
+
+template <>
+struct ArgGuesser<void> {
+  typedef NoneType Type;
+};
+
+template <>
+struct ArgGuesser<lua_Integer> {
+  typedef IntType Type;
+};
+
+template <>
+struct ArgGuesser<lua_Number> {
+  typedef NumberType Type;
+};
+
+template <typename ReturnType, typename DataType>
+struct MethodCall0 {
+
+  typedef typename ReturnType::Type (DataType::*MethodType)() noexcept;
+
+  static typename ReturnType::Type Call(DataType& s, MethodType f,
+                                        lua_State* L) noexcept {
+    return (s.*f)();
+  }
+};
+
+template <typename ReturnType, typename DataType, typename Arg0>
+struct MethodCall1 {
+
+  typedef typename ReturnType::Type (DataType::*MethodType)(Arg0) noexcept;
+
+  static typename ReturnType::Type Call(DataType& s, MethodType f,
+                                        lua_State* L) noexcept {
+    auto arg0 = GetType<typename ArgGuesser<Arg0>::Type>(L, 2);
+
+    return (s.*f)(arg0);
+  }
+};
+
+template <typename ReturnType, typename DataType, typename Arg0, typename Arg1>
+struct MethodCall2 {
+
+  typedef
+      typename ReturnType::Type (DataType::*MethodType)(Arg0, Arg1) noexcept;
+
+  static typename ReturnType::Type Call(DataType& s, MethodType f,
+                                        lua_State* L) noexcept {
+    auto arg0 = GetType<typename ArgGuesser<Arg0>::Type>(L, 2);
+    auto arg1 = GetType<typename ArgGuesser<Arg1>::Type>(L, 3);
+
+    return (s.*f)(arg0, arg1);
+  }
+};
+}  // namespace
+
+// Index represents an attribute of your custom UserData type.
+// Use the Getter/Setter/Method builders to initialize the instance
+// in your UserData::IndexMap.
 struct Index {
   std::function<int(const void*, lua_State*)> getter;
   std::function<int(void*, lua_State*)> setter;
   std::function<int(lua_State*)> fn;
 
+  // Getter makes this Index a property that is readable.
+  // ReturnType is one of the Type helpers that describes type handling
+  // (like StringType).
+  // It assumes your class method is something like:
+  //  const char* GetFoo() const noexcept { ... }
+  // to expose something like:
+  //  local f = x.foo
   template <typename ReturnType, typename DataType>
   Index& Getter(typename ReturnType::Type (DataType::*f)() const noexcept) {
     assert("getter already set" && !getter);
@@ -21,12 +98,15 @@ struct Index {
     getter = [f](const void* self, lua_State* L) -> int {
       const auto& s = *static_cast<const DataType*>(self);
       auto result = (s.*f)();
-      ReturnType::Push(L, result);
-      return 1;
+      return ReturnType::Push(L, result);
     };
     return *this;
   }
 
+  // Setter is the complement to Getter. It assumes your method is something like
+  //  void SetFoo(const char*) noexcept { ... }
+  // to expose something like:
+  //  `x.foo = "boo"`
   template <typename SetType, typename DataType>
   Index& Setter(void (DataType::*f)(typename SetType::Type) noexcept) {
     assert("setter already set" && !setter);
@@ -39,17 +119,34 @@ struct Index {
     return *this;
   }
 
-  // Method makes this Index a callable method bould to the instance.
+  // Method* makes this Index a callable method bould to the instance.
   // The callback will have all arguments in the call with the exception that
   // you must ignored the value at index-1 as it will not be an instance of self
   // (you don't need it, we already called you as an instance). All other
   // arguments are as expected where 0 is not valid, 1 you ignore, and 2... are
   // the arguments.
+  //
+  // note: This assumes your method is a form like:
+  //  const char* DoSomething(lua_State*) noexcept { ... }
+  //
+  // use NoneType as ReturnType for void
+
   template <typename ReturnType, typename DataType>
-  Index& Method(typename ReturnType::Type (DataType::*f)(lua_State*)
-                    const noexcept) {
-    typedef typename ReturnType::Type (DataType::*MethodType)(lua_State*)
-        const noexcept;
+  Index& Method0(typename ReturnType::Type (DataType::*f)() noexcept) {
+    return MethodX<MethodCall0<ReturnType, DataType>, ReturnType, DataType>(f);
+  }
+
+  template <typename ReturnType, typename DataType, typename Arg0>
+  Index& Method1(typename ReturnType::Type (DataType::*f)(Arg0) noexcept) {
+    return MethodX<MethodCall1<ReturnType, DataType, Arg0>, ReturnType,
+                   DataType>(f);
+  }
+
+ private:
+  // MethodX is used by the Method* calls.
+  template <typename MethodCaller, typename ReturnType, typename DataType,
+            typename MethodType>
+  Index& MethodX(MethodType f) {
 
     assert("cannot mix method with properties" && !getter && !setter);
     assert("method already set" && !fn);
@@ -103,12 +200,9 @@ struct Index {
               static_cast<DataType*>(luaL_checkudata(L, -1, DataType::Name));
           lua_pop(L, 1);
 
-          // Now, call the "method"
-          const auto& s = *static_cast<const DataType*>(self);
-          auto result = (s.*f)(L);
-
-          ReturnType::Push(L, result);
-          return 1;
+          auto& s = *static_cast<DataType*>(self);
+          auto result = MethodCaller::Call(s, f, L);
+          return ReturnType::Push(L, result);
         });
         lua_setfield(L, -2, "__call");
 
@@ -118,6 +212,7 @@ struct Index {
       // return the table (functor).
       return 1;
     };
+
     return *this;
   }
 };
@@ -130,7 +225,6 @@ class UserData {
 
   int MetaNewIndex(lua_State* L) noexcept {
     const char* key = luaL_checkstring(L, 2);
-    std::cout << "NewIndex(" << key << ")" << std::endl;
 
     auto i = FindKey(key);
     if (i && i->setter) {
@@ -142,7 +236,6 @@ class UserData {
 
   int MetaIndex(lua_State* L) const noexcept {
     const char* key = luaL_checkstring(L, 2);
-    std::cout << "Index(" << key << ")" << std::endl;
 
     auto i = FindKey(key);
     if (!i) {
@@ -159,6 +252,11 @@ class UserData {
   }
 
  protected:
+  // Indexes (sic: It sounds better than indices) is an optional override
+  // where you can declare the available Index instances used by
+  // __index and __newindex (MetaIndex and MetaNewIndex).
+  // You should use a statically initialized instance and return its address
+  // if your type is meant to expose properties and methods.
   virtual const IndexMap* Indexes() const noexcept { return nullptr; }
 
  private:
@@ -175,10 +273,14 @@ class UserData {
   }
 };
 
-template <typename DataType>
-void RegisterUserData(State& state) {
+namespace {
+template <typename DataType, typename NewCaller>
+void RegisterUserDataX(State& state) {
+  static_assert(std::is_base_of<UserData, DataType>::value);
+
   lua_register(state, DataType::Name, [](lua_State* L) -> int {
-    DataType* dt = new (lua_newuserdatauv(L, sizeof(DataType), 0)) DataType(L);
+    auto dt = NewCaller::Call(L);
+    assert(dt);
     luaL_setmetatable(L, DataType::Name);
     return 1;
   });
@@ -209,4 +311,48 @@ void RegisterUserData(State& state) {
   // done. pop meta table.
   lua_pop(state, 1);
 }
+}  // namespace
+
+template <typename DataType>
+struct NewCall0 {
+  static DataType* Call(lua_State* L) noexcept {
+    return new (lua_newuserdatauv(L, sizeof(DataType), 0)) DataType();
+  }
+};
+
+template <typename DataType, typename Arg0>
+struct NewCall1 {
+  static DataType* Call(lua_State* L) noexcept {
+    auto arg0 = GetType<typename ArgGuesser<Arg0>::Type>(L, 1);
+    return new (lua_newuserdatauv(L, sizeof(DataType), 0)) DataType(arg0);
+  }
+};
+
+template <typename DataType, typename Arg0, typename Arg1>
+struct NewCall2 {
+  static DataType* Call(lua_State* L) noexcept {
+    auto arg0 = GetType<typename ArgGuesser<Arg0>::Type>(L, 1);
+    auto arg1 = GetType<typename ArgGuesser<Arg1>::Type>(L, 2);
+    return new (lua_newuserdatauv(L, sizeof(DataType), 0)) DataType(arg0, arg1);
+  }
+};
+
+// RegisterUserData* calls take care of registering your type with lua
+// so that it can be instantiated, indexed, etc. Your type must be derived
+// from UserData. The different variants allow for constructors with arguments.
+template <typename DataType>
+void RegisterUserData0(State& state) {
+  return RegisterUserDataX<DataType, NewCall0<DataType>>(state);
+}
+
+template <typename DataType, typename Arg0>
+void RegisterUserData1(State& state) {
+  return RegisterUserDataX<DataType, NewCall1<DataType, Arg0>>(state);
+}
+
+template <typename DataType, typename Arg0, typename Arg1>
+void RegisterUserData2(State& state) {
+  return RegisterUserDataX<DataType, NewCall2<DataType, Arg0, Arg1>>(state);
+}
+
 }  // namespace lua

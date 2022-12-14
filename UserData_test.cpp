@@ -11,21 +11,23 @@ class CustomType : public UserData {
  public:
   static const char* Name;
 
-  CustomType(lua_State*) { std::cout << "CustomType()" << std::endl; }
+  explicit CustomType(lua_Integer i) {
+    std::cout << "CustomType(" << i << ")" << std::endl;
+  }
   ~CustomType() { std::cout << "~CustomType()" << std::endl; }
 
  protected:
+  Void Noop() noexcept { return Void(); }
+
   void SetThing(const char* v) noexcept { m_thing = v; }
 
   const char* GetThing() const noexcept { return m_thing.c_str(); }
 
   const char* Hello() const noexcept { return "hello"; }
 
-  const char* Speak(lua_State* L) const noexcept { return "bark"; }
+  const char* Speak() noexcept { return "bark"; }
 
-  const char* Echo(lua_State* L) const noexcept {
-    return luaL_checkstring(L, 2);
-  }
+  const char* Echo(const char* e) noexcept { return e; }
 
   const IndexMap* Indexes() const noexcept override { return &indexes; }
 
@@ -39,9 +41,11 @@ UserData::IndexMap CustomType::indexes = {
     // A simple property
     {"hello", Index().Getter<StringType>(&CustomType::Hello)},
     // A 0-arg method
-    {"speak", Index().Method<StringType>(&CustomType::Speak)},
+    {"speak", Index().Method0<StringType>(&CustomType::Speak)},
     // A 1-arg method
-    {"echo", Index().Method<StringType>(&CustomType::Echo)},
+    {"echo", Index().Method1<StringType>(&CustomType::Echo)},
+    // A void method
+    {"noop", Index().Method0<NoneType>(&CustomType::Noop)},
     // A getter/setter property
     {"thing", Index()
                   .Setter<StringType>(&CustomType::SetThing)
@@ -51,17 +55,19 @@ UserData::IndexMap CustomType::indexes = {
 }  // namespace
 
 TEST_F(UserDataTest, TestCustomType) {
-  RegisterUserData<CustomType>(*m_state);
+  RegisterUserData1<CustomType, lua_Integer>(*m_state);
 
   m_state->OpenBase();
   m_state->DoString(
       u8R"(
-local f = CustomType()
+local f = CustomType(99)
 print(f.hello)
 print(f.hello)
 print(f.speak())
 print(f.echo("meow"))
 f.thing="thing"
 print(f.thing)
+local n = f.noop()
+print(n)
     )");
 }
