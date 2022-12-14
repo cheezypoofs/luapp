@@ -54,7 +54,7 @@ struct MethodCall1 {
 
   static typename ReturnType::Type Call(DataType& s, MethodType f,
                                         lua_State* L) noexcept {
-    auto arg0 = GetType<typename ArgGuesser<Arg0>::Type>(L, 2);
+    auto arg0 = GetType<typename ArgGuesser<Arg0>::Type>(L, 1);
 
     return (s.*f)(arg0);
   }
@@ -68,8 +68,8 @@ struct MethodCall2 {
 
   static typename ReturnType::Type Call(DataType& s, MethodType f,
                                         lua_State* L) noexcept {
-    auto arg0 = GetType<typename ArgGuesser<Arg0>::Type>(L, 2);
-    auto arg1 = GetType<typename ArgGuesser<Arg1>::Type>(L, 3);
+    auto arg0 = GetType<typename ArgGuesser<Arg0>::Type>(L, 1);
+    auto arg1 = GetType<typename ArgGuesser<Arg1>::Type>(L, 2);
 
     return (s.*f)(arg0, arg1);
   }
@@ -148,65 +148,33 @@ struct Index {
     assert("cannot mix method with properties" && !getter && !setter);
     assert("method already set" && !fn);
 
-    // `fn` is invoked on the __index of the method. We return a callable each
-    // time it is invoked. This callable is not a function, rather it is a
-    // generic table that contains:
-    //  - A reference to `self` as a value (to keep a ref count on it)
-    //  - A copy of `f` (which is just a value...a pointer to a method that will
-    //  exist in the instance
-    //      of `self`)
-    //  - A single-entry meta table with __call implemented to make it callable.
-
+    // effectively, want to create a closure like:
+    // [self, f](lua_State*) -> int ...
     fn = [f](lua_State* L) -> int {
-      // table as a functor
-      lua_createtable(L, 0, 3);
+      // push `self`
+      lua_pushvalue(L, 1);
 
-      // t["f"] = f
+      // push `f`
       *static_cast<MethodType*>(lua_newuserdatauv(L, sizeof(MethodType), 0)) =
           f;
-      lua_setfield(L, -2, "f");
 
-      // t["self"] = self
-      // this ensures a ref-counted binding to self
-      lua_pushvalue(L, 1);  // todo: rework so this is more of a sure thing
-      lua_setfield(L, -2, "self");
+      // return closure
+      lua_pushcclosure(
+          L,
+          [](lua_State* L) -> int {
+            // fetch `self`
+            auto self = static_cast<DataType*>(
+                luaL_checkudata(L, lua_upvalueindex(1), DataType::Name));
 
-      // metatable
-      {
-        lua_createtable(L, 0, 1);
+            // fetch `f`
+            auto f = *(static_cast<MethodType*>(
+                AssertNotNull(lua_touserdata(L, lua_upvalueindex(2)))));
 
-        // metatable["__call"] = <call impl>
-        lua_pushcfunction(L, [](lua_State* L) -> int {
-          /////
-          // fetch `f`
-          /////
-          auto typ = lua_getfield(L, 1, "f");
-          assert(typ == LUA_TUSERDATA);
+            auto result = MethodCaller::Call(*self, f, L);
+            return ReturnType::Push(L, result);
+          },
+          2);
 
-          auto f =
-              *(static_cast<MethodType*>(AssertNotNull(lua_touserdata(L, -1))));
-          lua_pop(L, 1);
-
-          /////
-          // fetch `self`
-          /////
-          typ = lua_getfield(L, 1, "self");
-          assert(typ == LUA_TUSERDATA);
-
-          auto self =
-              static_cast<DataType*>(luaL_checkudata(L, -1, DataType::Name));
-          lua_pop(L, 1);
-
-          auto& s = *static_cast<DataType*>(self);
-          auto result = MethodCaller::Call(s, f, L);
-          return ReturnType::Push(L, result);
-        });
-        lua_setfield(L, -2, "__call");
-
-        lua_setmetatable(L, -2);
-      }
-
-      // return the table (functor).
       return 1;
     };
 
