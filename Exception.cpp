@@ -1,13 +1,13 @@
 #include "Exception.h"
 
+#include <string>
 #include "State.h"
 #include "luapp.h"
-#include <string>
 
 namespace lua {
 
 namespace {
-std::string MakeRuntimeError(lua_State *state, const char *msg) {
+std::string MakeRuntimeError(lua_State* state, const char* msg) {
   std::string err;
 
   if (msg) {
@@ -20,11 +20,11 @@ std::string MakeRuntimeError(lua_State *state, const char *msg) {
 
   return err;
 }
-} // namespace
+}  // namespace
 
-Exception::Exception(const std::string &what) : std::runtime_error(what) {}
+Exception::Exception(const std::string& what) : std::runtime_error(what) {}
 
-RuntimeException::RuntimeException(State &state)
+RuntimeException::RuntimeException(State& state)
     : Exception(MakeRuntimeError(state, nullptr)) {}
 
-} // namespace lua
+}  // namespace lua

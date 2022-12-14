@@ -1,5 +1,5 @@
-#include "Lua_test.h"
 #include "Type.h"
+#include "Lua_test.h"
 
 using namespace lua;
 

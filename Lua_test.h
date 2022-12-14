@@ -1,11 +1,11 @@
-#include "Allocator.h"
-#include "State.h"
 #include <gtest/gtest.h>
 #include <iostream>
+#include "Allocator.h"
+#include "State.h"
 
 namespace lua {
 class LuaTestBase : public ::testing::Test {
-public:
+ public:
   LuaTestBase()
       : m_alloc(std::make_shared<StdAllocator>()),
         m_memoryCounts(std::make_shared<CountingAllocator>(*m_alloc)),
@@ -38,10 +38,10 @@ public:
     ::testing::Test::TearDown();
   }
 
-protected:
+ protected:
   std::shared_ptr<StdAllocator> m_alloc;
   std::shared_ptr<CountingAllocator> m_memoryCounts;
   std::unique_ptr<State> m_state;
 };
 
-} // namespace lua
+}  // namespace lua

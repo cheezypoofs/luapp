@@ -1,4 +1,3 @@
 #include "UserData.h"
 
-namespace lua {
-}
+namespace lua {}

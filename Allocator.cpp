@@ -1,11 +1,11 @@
 #include "Allocator.h"
 
-#include <cassert>
 #include <stdlib.h>
+#include <cassert>
 
 namespace lua {
 
-void *StdAllocator::Alloc(size_t n) noexcept {
+void* StdAllocator::Alloc(size_t n) noexcept {
   if (n == 0) {
     return nullptr;
   }
@@ -14,7 +14,7 @@ void *StdAllocator::Alloc(size_t n) noexcept {
   return p;
 }
 
-void *StdAllocator::Realloc(void *p, size_t o, size_t n) noexcept {
+void* StdAllocator::Realloc(void* p, size_t o, size_t n) noexcept {
   assert(n);
   if (o >= n) {
     return p;
@@ -24,16 +24,16 @@ void *StdAllocator::Realloc(void *p, size_t o, size_t n) noexcept {
   return newP;
 }
 
-void StdAllocator::Free(void *p, size_t) noexcept {
+void StdAllocator::Free(void* p, size_t) noexcept {
   //    std::cout << "free(" << p << ")" << std::endl;
   ::free(p);
 }
 
 ///
 
-CountingAllocator::CountingAllocator(Allocator &next) : m_next(next) {}
+CountingAllocator::CountingAllocator(Allocator& next) : m_next(next) {}
 
-void *CountingAllocator::Alloc(size_t n) noexcept {
+void* CountingAllocator::Alloc(size_t n) noexcept {
   m_numAllocs++;
   auto p = m_next.Alloc(n);
   if (p) {
@@ -43,7 +43,7 @@ void *CountingAllocator::Alloc(size_t n) noexcept {
   return m_next.Alloc(n);
 }
 
-void *CountingAllocator::Realloc(void *p, size_t o, size_t n) noexcept {
+void* CountingAllocator::Realloc(void* p, size_t o, size_t n) noexcept {
   m_numReallocs++;
 
   int64_t diff = static_cast<int64_t>(n) - static_cast<int64_t>(o);
@@ -55,7 +55,7 @@ void *CountingAllocator::Realloc(void *p, size_t o, size_t n) noexcept {
   return m_next.Realloc(p, o, n);
 }
 
-void CountingAllocator::Free(void *p, size_t o) noexcept {
+void CountingAllocator::Free(void* p, size_t o) noexcept {
   m_numFrees++;
   assert(m_totalLivePointers);
   assert(o <= m_totalLiveMemory);
@@ -64,4 +64,4 @@ void CountingAllocator::Free(void *p, size_t o) noexcept {
   return m_next.Free(p, o);
 }
 
-} // namespace lua
+}  // namespace lua
