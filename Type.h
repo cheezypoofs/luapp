@@ -57,6 +57,10 @@ inline PushedValue PushValue(lua_State* state, int index) {
   return PushedValue(state, lua_type(state, -1));
 }
 
+inline PushedValue PushValue(const ScopedValue& sv) {
+  return PushValue(sv.state, sv.index);
+}
+
 // GetValue inspects the actual primitive value given by T
 // (assuming T implements `MaybeGet`).
 template <typename T>

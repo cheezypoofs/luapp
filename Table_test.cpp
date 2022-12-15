@@ -5,7 +5,7 @@ using namespace lua;
 
 class TableTest : public LuaTestBase {};
 
-TEST_F(TableTest, TestGetMissing) {
+TEST_F(TableTest, TestGetSet) {
   Table t1(ScopedValue(TableType::Create(*m_state, 0, 0)));
   Table t2(ScopedValue(TableType::Create(*m_state, 0, 0)));
   Table t3(ScopedValue(TableType::Create(*m_state, 0, 0)));
@@ -27,4 +27,18 @@ TEST_F(TableTest, TestGetMissing) {
   auto value = ScopedValue(t3.Get("key"));
   EXPECT_EQ(value.type, StringType::TypeNum);
   EXPECT_EQ(GetValue<StringType>(value), std::string("value"));
+}
+
+TEST_F(TableTest, TestNested) {
+  // creation order shouldn't matter
+  Table inner(ScopedValue(TableType::Create(*m_state, 0, 0)));
+  Table outer(ScopedValue(TableType::Create(*m_state, 0, 0)));
+
+  inner.Set(IntType::Push(*m_state, 99), "99");
+  outer.Set(inner.PushSelf(), "inner");
+
+  // outer["inner"]["99"] == 99 ?
+  EXPECT_EQ(lua_Integer(99),
+            GetValue<IntType>(
+                ScopedValue(Table(ScopedValue(outer.Get("inner"))).Get("99"))));
 }

@@ -20,15 +20,13 @@ struct PushedValue {
 
   explicit PushedValue(lua_State* s);
   PushedValue(lua_State*, int t);
-
-  operator bool() const;
 };
 
 // ScopedValue is used when you want to manage popping a value off the stack on scope exit.
 // This can be useful as a mmember of a class that manipulates objects (like a Table), but also
 // for local access of a value that was recently pushed to inspect the value.
 struct ScopedValue final {
-  // explicit ScopedValue(lua_State* s);
+  ScopedValue() = default;
   explicit ScopedValue(const PushedValue&);
   ~ScopedValue();
 
@@ -44,6 +42,8 @@ struct ScopedValue final {
     std::swap(index, o.index);
     return *this;
   }
+
+  PushedValue PushSelf() const;
 
   lua_State* state = nullptr;
   size_t num = 0;

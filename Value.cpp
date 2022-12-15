@@ -1,5 +1,6 @@
 #include "Value.h"
 #include <cassert>
+#include "Type.h"
 
 namespace lua {
 PushedValue::PushedValue(lua_State* s) : PushedValue(s, lua_type(s, -1)) {}
@@ -27,9 +28,8 @@ ScopedValue::~ScopedValue() {
   }
 }
 
-///
-
-PushedValue::operator bool() const {
-  return type > LUA_TNIL && type < LUA_NUMTYPES;
+PushedValue ScopedValue::PushSelf() const {
+  return PushValue(state, index);
 }
+
 }  // namespace lua
