@@ -54,7 +54,7 @@ struct MethodCall1 {
 
   static typename ReturnType::Type Call(DataType& s, MethodType f,
                                         lua_State* L) noexcept {
-    auto arg0 = GetType<typename ArgGuesser<Arg0>::Type>(L, 1);
+    auto arg0 = GetValue<typename ArgGuesser<Arg0>::Type>(L, 1);
 
     return (s.*f)(arg0);
   }
@@ -68,8 +68,8 @@ struct MethodCall2 {
 
   static typename ReturnType::Type Call(DataType& s, MethodType f,
                                         lua_State* L) noexcept {
-    auto arg0 = GetType<typename ArgGuesser<Arg0>::Type>(L, 1);
-    auto arg1 = GetType<typename ArgGuesser<Arg1>::Type>(L, 2);
+    auto arg0 = GetValue<typename ArgGuesser<Arg0>::Type>(L, 1);
+    auto arg1 = GetValue<typename ArgGuesser<Arg1>::Type>(L, 2);
 
     return (s.*f)(arg0, arg1);
   }
@@ -98,7 +98,7 @@ struct Index {
     getter = [f](const void* self, lua_State* L) -> int {
       const auto& s = *static_cast<const DataType*>(self);
       auto result = (s.*f)();
-      return ReturnType::Push(L, result);
+      return ReturnType::Push(L, result).num;
     };
     return *this;
   }
@@ -113,7 +113,7 @@ struct Index {
     assert("cannot mix method with properties" && !fn);
     setter = [f](void* self, lua_State* L) -> int {
       auto& s = *static_cast<DataType*>(self);
-      (s.*f)(GetType<SetType>(L, 2));
+      (s.*f)(GetValue<SetType>(L, 2));
       return 0;
     };
     return *this;
@@ -171,7 +171,7 @@ struct Index {
                 AssertNotNull(lua_touserdata(L, lua_upvalueindex(2)))));
 
             auto result = MethodCaller::Call(*self, f, L);
-            return ReturnType::Push(L, result);
+            return ReturnType::Push(L, result).num;
           },
           2);
 
@@ -272,7 +272,7 @@ struct NewCall0 {
 template <typename DataType, typename Arg0>
 struct NewCall1 {
   static DataType* Call(lua_State* L) noexcept {
-    auto arg0 = GetType<typename ArgGuesser<Arg0>::Type>(L, 1);
+    auto arg0 = GetValue<typename ArgGuesser<Arg0>::Type>(L, 1);
     return new (lua_newuserdatauv(L, sizeof(DataType), 0)) DataType(arg0);
   }
 };
@@ -280,8 +280,8 @@ struct NewCall1 {
 template <typename DataType, typename Arg0, typename Arg1>
 struct NewCall2 {
   static DataType* Call(lua_State* L) noexcept {
-    auto arg0 = GetType<typename ArgGuesser<Arg0>::Type>(L, 1);
-    auto arg1 = GetType<typename ArgGuesser<Arg1>::Type>(L, 2);
+    auto arg0 = GetValue<typename ArgGuesser<Arg0>::Type>(L, 1);
+    auto arg1 = GetValue<typename ArgGuesser<Arg1>::Type>(L, 2);
     return new (lua_newuserdatauv(L, sizeof(DataType), 0)) DataType(arg0, arg1);
   }
 };

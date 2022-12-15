@@ -25,10 +25,14 @@ add_library(
     Exception.cpp
     State.h
     State.cpp
+    Table.h
+    Table.cpp
     Type.h
     Type.cpp
     UserData.h
     UserData.cpp
+    Value.h
+    Value.cpp
 )
 
 add_executable(
@@ -36,6 +40,7 @@ add_executable(
 
     luapp_test.cpp
     State_test.cpp
+    Table_test.cpp
     Type_test.cpp
     UserData_test.cpp
 )
